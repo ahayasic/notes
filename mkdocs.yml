@@ -1,0 +1,183 @@
+# Project Information
+#
+site_name: Alisson Hayasi da Costa Notes
+site_url: https://ahayasic.github.io/notes
+site_author: Alisson Hayasi da Costa
+site_description: Study notes on technologies and concepts related to data engineering and software engineering.
+
+
+# Repository
+#
+repo_name: ahayasic/notes
+repo_url: https://github.com/ahayasic/notes
+edit_uri: ""
+
+
+# Copyright
+#
+copyright: Copyright &copy; Alisson Hayasi da Costa
+
+
+# Configuration
+#
+theme:
+  name: material
+  language: en
+
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+  # Font
+  font:
+    text: Lato
+    code: Fira Code
+
+  # Features:
+  features:
+    # Navigation
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.instant.preview
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.indexes
+    - navigation.path
+    - navigation.top
+    - navigation.footer
+    # TOC
+    - toc.follow
+    # Search
+    - search.suggest
+    - search.highlight
+    - search.share
+    # Code
+    - content.code.copy
+
+extra:
+  social:
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/in/ahayasic/
+    - icon: fontawesome/brands/github
+      link: https://github.com/ahayasic
+
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+extra_css:
+  - stylesheets/extra.css
+
+
+plugins:
+  - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: date
+      fallback_to_build_date: true
+
+
+markdown_extensions:
+  # Abbreviations
+  - abbr                                                                  # additional content to parts of the text which are then shown on hover
+
+  # Admonitions
+  - admonition                                                            # call-outs
+  - pymdownx.details                                                      # adds the ability to make admonitions collapsible
+
+  # HTML & CSS
+  - attr_list                                                             # add HTML attributes and CSS classes to Markdown elements
+
+  # Code blocks
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+
+  - pymdownx.keys                                                         # allows for inserting keyboard keys
+
+  # Content Tabs
+  - pymdownx.tabbed                                                       # allows group alternative content under different tabs
+
+  # Footnotes
+  - footnotes                                                             # add the ability to add inline footnotes
+
+  # Text formatting
+  - pymdownx.betterem
+  - pymdownx.caret                                                        # allow for the highlighting of text, as well as handling sub- and superscripts
+  - pymdownx.mark                                                         #
+  - pymdownx.tilde                                                        #
+  - pymdownx.critic                                                       # allow for the usage of Critic Markup to highlight changes
+  - pymdownx.smartsymbols                                                 # converts special characters into their corresponding symbols
+
+  # Emojis
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+  # Lists                                                                 # add support to several flavors of lists
+  - def_list
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+  # MathJax
+  - pymdownx.arithmatex:
+      generic: true
+
+  # Meta tags
+  - meta                                                                  # adds the ability to add front matter to a document
+
+  # Macros                                                                # add jinja templating support
+  # - macros
+
+  # Magic Links                                                           # add ability to link repositories
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: ahayasic
+      repo: data-engineering-notes
+
+  # Utils
+  - toc:
+      permalink: true
+      toc_depth: 4
+  - pymdownx.snippets
+  # Others
+  - md_in_html
+  - pymdownx.betterem:
+      smart_enable: all
+  - tables
+
+
+# Page Tree
+#
+nav:
+  - Home: index.md
+  - Apache Spark: apache-spark/index.md
+  - Structured Streaming:
+    - apache-spark/structured-streaming/index.md
+    - Stream Processing Concepts: apache-spark/structured-streaming/stream-processing-concepts.md
+    - Programming Model: apache-spark/structured-streaming/programming-model.md
+    - Sources: apache-spark/structured-streaming/sources.md
+    - Sinks: apache-spark/structured-streaming/sinks.md
