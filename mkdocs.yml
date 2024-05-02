@@ -181,3 +181,15 @@ nav:
     - Programming Model: apache-spark/structured-streaming/programming-model.md
     - Sources: apache-spark/structured-streaming/sources.md
     - Sinks: apache-spark/structured-streaming/sinks.md
+  - Machine Learning Engineering:
+    - machine-learning-engineering/index.md
+    - MLOps: machine-learning-engineering/mlops.md
+    - ML Model Development Challenges: machine-learning-engineering/ml-model-development-challenges.md
+    - Data-Centric AI: machine-learning-engineering/data-centric-ai.md
+    - Baseline ML Models: machine-learning-engineering/baseline-ml-models.md
+    - Model Serving: machine-learning-engineering/model-serving.md
+    - Experiment Tracking: machine-learning-engineering/experiment-tracking.md
+  - Python:
+    - python/index.md
+    - Importing Guide: python/importing-guide.md
+    - Linting: python/linting.md
