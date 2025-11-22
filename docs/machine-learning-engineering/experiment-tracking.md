@@ -219,7 +219,7 @@ Portanto, ao usar o Git com o MLflow Tracking podemos (sem necessariamente adici
 
 Dado que a versão de cada código fonte (e consequentemente, dos artefatos relacionados) é definida com base na hash de um commit, o versionamento correto é responsabilidade total do usuário, o que pode ser sujeito a erros.
 
-Por exemplo, podemos modificar o código de um experimento e executá-lo diversas vezes sem "commitá-lo". Com isso, várias iterações serão registradas para um mesmo arquivo de código fonte (assim como modelo e dado). Porém, embora todos tenham a mesma versão, o conteúdo de cada execução é diferente. Dessa forma, fica impossível identificar o código que gerou os artefatos da respectiva execução. 
+Por exemplo, podemos modificar o código de um experimento e executá-lo diversas vezes sem "commitá-lo". Com isso, várias iterações serão registradas para um mesmo arquivo de código fonte (assim como modelo e dado). Porém, embora todos tenham a mesma versão, o conteúdo de cada execução é diferente. Dessa forma, fica impossível identificar o código que gerou os artefatos da respectiva execução.
 
 Portanto, as práticas que podemos adotar são:
 

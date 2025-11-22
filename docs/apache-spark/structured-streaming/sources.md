@@ -69,7 +69,7 @@ Schema-driven design in streaming applications enhances the understanding and or
 
 Structured Streaming enables the use of custom sources by either extending the Source interface or incorporating sources provided by third parties through custom JARs and libraries.
 
-An interesting additional source that Apache Spark supports (natively) is [Delta Tables](https://docs.delta.io/latest/delta-streaming.html), a robust storage layer that enables ACID transactions for Spark and big data workloads. Delta Tables are designed to allow reliable and concurrent reads and writes on datasets, which is ideal for complex data pipelines and streaming scenarios.
+An interesting additional source that Apache Spark supports (natively) is [Delta Tables](https://docs.delta.io/latest/delta-streaming.html), a robust storage file format that enables ACID transactions for Spark and big data workloads. Delta Tables are designed to allow reliable and concurrent reads and writes on datasets, which is ideal for complex data pipelines and streaming scenarios.
 
 ## References
 
