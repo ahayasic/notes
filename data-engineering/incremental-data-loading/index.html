@@ -1,0 +1,3259 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Study notes on technologies and concepts related to data engineering and software engineering.">
+      
+      
+        <meta name="author" content="Alisson Hayasi da Costa">
+      
+      
+        <link rel="canonical" href="https://ahayasic.github.io/notes/data-engineering/incremental-data-loading/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../../apache-spark/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Incremental Data Loading - Alisson Hayasi da Costa Notes</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300i,400,400i,700,700i%7CFira+Code:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Lato";--md-code-font:"Fira Code"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#incremental-data-loading-patterns-and-principles" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Alisson Hayasi da Costa Notes" class="md-header__button md-logo" aria-label="Alisson Hayasi da Costa Notes" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alisson Hayasi da Costa Notes
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Incremental Data Loading
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ahayasic/notes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ahayasic/notes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Data Engineering
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../apache-spark/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Apache Spark
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../apache-spark/structured-streaming/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Structured Streaming
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../machine-learning-engineering/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Machine Learning Engineering
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../python/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Python
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Alisson Hayasi da Costa Notes" class="md-nav__button md-logo" aria-label="Alisson Hayasi da Costa Notes" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Alisson Hayasi da Costa Notes
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ahayasic/notes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ahayasic/notes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Engineering
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Engineering
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incremental Data Loading
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incremental Data Loading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-incremental-loading-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Incremental Loading Framework
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The Incremental Loading Framework">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-change-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Change Detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. State Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-target-reconciliation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Target Reconciliation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#strategic-evaluation-incremental-vs-full-load" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strategic Evaluation: Incremental vs. Full Load
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-detection-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change Detection Strategies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Change Detection Strategies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pattern-1-high-water-mark-time-based" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern 1: High-Water Mark (Time-Based)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pattern 1: High-Water Mark (Time-Based)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interval-based-query-variant" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interval-Based Query Variant
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#state-management-metadata-table-approach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State Management: Metadata Table Approach
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alternative-target-derived-watermark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternative: Target-Derived Watermark
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alternative-technology-specific-state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternative: Technology-Specific State Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advantages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advantages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-2-sequence-based-monotonic-ids" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern 2: Sequence-Based (Monotonic IDs)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pattern 2: Sequence-Based (Monotonic IDs)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advantages_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advantages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limitations_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#project_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-3-change-data-capture-cdc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern 3: Change Data Capture (CDC)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pattern 3: Change Data Capture (CDC)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advantages_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advantages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limitations_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#project_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-4-snapshot-differencing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern 4: Snapshot Differencing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pattern 4: Snapshot Differencing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advantages_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advantages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limitations_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementation-variants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Variants
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hash-based-change-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hash-Based Change Detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advantages_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advantages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limitations_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#project_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#target-reconciliation-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target Reconciliation Strategies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Target Reconciliation Strategies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#append-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Append-Only
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mergeupsert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Merge/Upsert
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#partition-overwrite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Partition Overwrite
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#engineering-challenges-and-resilience-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engineering Challenges and Resilience Patterns
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Engineering Challenges and Resilience Patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-idempotency-and-duplicate-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Idempotency and Duplicate Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-the-hard-delete-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. The "Hard Delete" Problem
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-late-arriving-data-and-out-of-order-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Late Arriving Data and Out-of-Order Events
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-schema-evolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Schema Evolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-re-ingestion-and-backfilling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Re-ingestion and Backfilling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conclusion
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../apache-spark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Apache Spark
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../apache-spark/structured-streaming/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structured Streaming
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structured Streaming
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../apache-spark/structured-streaming/stream-processing-concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stream Processing Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../apache-spark/structured-streaming/programming-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Programming Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../apache-spark/structured-streaming/sources/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sources
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../apache-spark/structured-streaming/sinks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../machine-learning-engineering/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Machine Learning Engineering
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Machine Learning Engineering
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../machine-learning-engineering/mlops/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MLOps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../machine-learning-engineering/ml-model-development-challenges/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ML Model Development Challenges
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../machine-learning-engineering/data-centric-ai/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data-Centric AI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../machine-learning-engineering/baseline-ml-models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Baseline ML Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../machine-learning-engineering/model-serving/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model Serving
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../machine-learning-engineering/experiment-tracking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experiment Tracking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../python/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Python
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../python/importing-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../python/linting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-incremental-loading-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Incremental Loading Framework
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The Incremental Loading Framework">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-change-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Change Detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. State Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-target-reconciliation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Target Reconciliation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#strategic-evaluation-incremental-vs-full-load" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strategic Evaluation: Incremental vs. Full Load
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#change-detection-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change Detection Strategies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Change Detection Strategies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pattern-1-high-water-mark-time-based" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern 1: High-Water Mark (Time-Based)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pattern 1: High-Water Mark (Time-Based)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interval-based-query-variant" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interval-Based Query Variant
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#state-management-metadata-table-approach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State Management: Metadata Table Approach
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alternative-target-derived-watermark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternative: Target-Derived Watermark
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alternative-technology-specific-state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternative: Technology-Specific State Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advantages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advantages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-2-sequence-based-monotonic-ids" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern 2: Sequence-Based (Monotonic IDs)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pattern 2: Sequence-Based (Monotonic IDs)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advantages_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advantages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limitations_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#project_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-3-change-data-capture-cdc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern 3: Change Data Capture (CDC)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pattern 3: Change Data Capture (CDC)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advantages_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advantages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limitations_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#project_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pattern-4-snapshot-differencing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pattern 4: Snapshot Differencing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pattern 4: Snapshot Differencing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advantages_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advantages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limitations_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementation-variants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Variants
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hash-based-change-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hash-Based Change Detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advantages_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advantages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limitations_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#project_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#target-reconciliation-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target Reconciliation Strategies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Target Reconciliation Strategies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#append-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Append-Only
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mergeupsert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Merge/Upsert
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#partition-overwrite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Partition Overwrite
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#engineering-challenges-and-resilience-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engineering Challenges and Resilience Patterns
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Engineering Challenges and Resilience Patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-idempotency-and-duplicate-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Idempotency and Duplicate Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-the-hard-delete-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. The "Hard Delete" Problem
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-late-arriving-data-and-out-of-order-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Late Arriving Data and Out-of-Order Events
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-schema-evolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Schema Evolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-re-ingestion-and-backfilling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Re-ingestion and Backfilling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conclusion
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Data Engineering
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="incremental-data-loading-patterns-and-principles">Incremental Data Loading: Patterns and Principles<a class="headerlink" href="#incremental-data-loading-patterns-and-principles" title="Permanent link">&para;</a></h1>
+<p>Incremental data loading, frequently referred to as incremental ingestion or delta loading, is the data integration approach where only new, modified, or deleted data is extracted from source systems and loaded into target systems. Unlike full load patterns, which reprocess entire datasets during every extraction cycle, incremental strategies process only the state changes—the "delta"—that have occurred since the last successful ingestion.</p>
+<p>This approach is the standard for scalable modern data pipelines, minimizing computational overhead, reducing network latency, and enabling fast data delivery. However, it introduces architectural complexity regarding data consistency and state tracking.</p>
+<h2 id="the-incremental-loading-framework">The Incremental Loading Framework<a class="headerlink" href="#the-incremental-loading-framework" title="Permanent link">&para;</a></h2>
+<p>A robust incremental pipeline has three distinct architectural pillars: <strong>Change Detection</strong>, <strong>State Management</strong>, and <strong>Target Reconciliation</strong>.</p>
+<h3 id="1-change-detection">1. Change Detection<a class="headerlink" href="#1-change-detection" title="Permanent link">&para;</a></h3>
+<p>Change detection is the mechanism used to identify the delta—the subset of data that has changed since the last successful extraction. It can be:</p>
+<ul>
+<li><strong>Attribute-based:</strong> Use source system timestamps or monotonically increasing IDs to filter records.</li>
+<li><strong>Log-based:</strong> Leveraging Change Data Capture (CDC) to read database transaction logs (WAL, binlogs) for insert, update, and delete events.</li>
+<li><strong>Difference-based:</strong> Comparing hashes or full snapshots to identify drift between source and target.</li>
+</ul>
+<h3 id="2-state-management">2. State Management<a class="headerlink" href="#2-state-management" title="Permanent link">&para;</a></h3>
+<p>State management is the system's memory. It tracks the pipeline's progress to ensure data is processed exactly once (conceptually) or at least once (mechanically).</p>
+<ul>
+<li><strong>Watermarking:</strong> Storing the maximum timestamp or ID processed in the previous run (e.g., <code>last_watermark = '2024-01-15T12:00:00'</code>).</li>
+<li><strong>Checkpointing:</strong> Persisting offsets (e.g., Kafka offsets) or file listing cursors to allow the pipeline to resume from the exact point of failure or completion.</li>
+</ul>
+<h3 id="3-target-reconciliation">3. Target Reconciliation<a class="headerlink" href="#3-target-reconciliation" title="Permanent link">&para;</a></h3>
+<p>Often referred to as "Target Handling," this is the strategy for merging incoming deltas into the destination storage to ensure a consistent view. The most common approaches are:</p>
+<ul>
+<li><strong>Append-Only:</strong> Strictly adding new immutable events (e.g., logs).</li>
+<li><strong>Merge/Upsert:</strong> Updating existing records based on primary keys while inserting new ones.</li>
+<li><strong>Partition Overwrite:</strong> Replacing specific time-based partitions entirely to ensure atomicity.</li>
+</ul>
+<h2 id="strategic-evaluation-incremental-vs-full-load">Strategic Evaluation: Incremental vs. Full Load<a class="headerlink" href="#strategic-evaluation-incremental-vs-full-load" title="Permanent link">&para;</a></h2>
+<p>While incremental loading is efficient, it is not universally superior. It trades the simplicity of a full refresh for the efficiency of delta processing.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Full Load</th>
+<th style="text-align: left;">Incremental Load</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Data Volume</strong></td>
+<td style="text-align: left;">Processes 100% of data per run.</td>
+<td style="text-align: left;">Processes only changed records (\&lt;1% typically).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Complexity</strong></td>
+<td style="text-align: left;">Low. State tracking is unnecessary.</td>
+<td style="text-align: left;">High. Requires state management and strict ordering.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Resource Cost</strong></td>
+<td style="text-align: left;">Linear growth with dataset size.</td>
+<td style="text-align: left;">Constant/Linear growth with change rate.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Deletes</strong></td>
+<td style="text-align: left;">Automatically handles deletions (missing rows are gone).</td>
+<td style="text-align: left;">Requires explicit handling (CDC or Tombstones).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Consistency</strong></td>
+<td style="text-align: left;">High. "What you see is what you get."</td>
+<td style="text-align: left;">Risk of drift if pipeline logic fails.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Use Incremental Loading When:</strong></p>
+<ul>
+<li>Source datasets are massive (GBs to PBs) and full scans are computationally prohibitive.</li>
+<li>Data availability requirements demand high-frequency updates (low latency).</li>
+<li>Source systems are sensitive to query load (e.g., operational OLTP databases).</li>
+</ul>
+<h2 id="change-detection-strategies">Change Detection Strategies<a class="headerlink" href="#change-detection-strategies" title="Permanent link">&para;</a></h2>
+<h3 id="pattern-1-high-water-mark-time-based">Pattern 1: High-Water Mark (Time-Based)<a class="headerlink" href="#pattern-1-high-water-mark-time-based" title="Permanent link">&para;</a></h3>
+<p>Time-based watermarking is one of the most common batch incremental loading patterns. It relies on timestamp columns in source data to identify records that have been modified since the last extraction. The pipeline queries the source for records where the modification timestamp is greater than the stored high-water mark from the previous run, which is maintained through state management.</p>
+<h4 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h4>
+<p>The pipeline maintains a <strong>watermark</strong>—a timestamp representing the last successfully processed record. On each run, the pipeline queries the source system for records where the timestamp column is greater than the watermark value.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">FROM</span><span class="w"> </span><span class="n">source_table</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">updated_at</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="s1">&#39;2024-01-15 10:30:00&#39;</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">updated_at</span>
+</span></code></pre></div>
+<p>After successful processing, the watermark is updated to the maximum timestamp from the current batch.</p>
+<h4 id="interval-based-query-variant">Interval-Based Query Variant<a class="headerlink" href="#interval-based-query-variant" title="Permanent link">&para;</a></h4>
+<p>While the standard high-water mark pattern uses an open-ended query (<code>WHERE updated_at &gt; watermark</code>), some scenarios benefit from bounded interval queries that extract data within a specific time window. Interval-based queries are useful for:</p>
+<ul>
+<li><strong>Reprocessing historical data</strong>: Re-extracting data for a specific time period without affecting the watermark</li>
+<li><strong>Partitioned extraction</strong>: Processing data in fixed-size windows (e.g., daily, hourly) to manage large datasets</li>
+<li><strong>Look-back windows</strong>: Including a safety buffer to handle late-arriving data while maintaining a bounded extraction window</li>
+<li><strong>Parallel processing</strong>: Enabling multiple pipeline instances to process non-overlapping time intervals concurrently</li>
+</ul>
+<p><strong>Bounded Interval Pattern:</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">-- Extract data for a specific time interval</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">FROM</span><span class="w"> </span><span class="n">source_table</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">updated_at</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="s1">&#39;2024-01-15 00:00:00&#39;</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">updated_at</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="s1">&#39;2024-01-16 00:00:00&#39;</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">updated_at</span>
+</span></code></pre></div>
+<p><strong>Sliding Window Pattern:</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">-- Extract data with a look-back window for safety</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">FROM</span><span class="w"> </span><span class="n">source_table</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">updated_at</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="s1">&#39;2024-01-15 10:30:00&#39;</span><span class="w">  </span><span class="c1">-- last watermark</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">updated_at</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="s1">&#39;2024-01-15 12:00:00&#39;</span><span class="w">  </span><span class="c1">-- current processing window end</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">updated_at</span>
+</span></code></pre></div>
+<p><strong>Implementation Considerations:</strong></p>
+<p>When using interval-based queries, the watermark update strategy differs from the standard pattern. Instead of updating to the maximum timestamp in the batch, the watermark is typically advanced to the end of the processed interval:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Process data for a specific interval</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">start_time</span> <span class="o">=</span> <span class="s1">&#39;2024-01-15 00:00:00&#39;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">end_time</span> <span class="o">=</span> <span class="s1">&#39;2024-01-15 23:59:59&#39;</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">df</span> <span class="o">=</span> <span class="n">extract_data_between</span><span class="p">(</span><span class="n">start_time</span><span class="p">,</span> <span class="n">end_time</span><span class="p">)</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">process_and_load</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="c1"># Update watermark to end of interval (not max timestamp in data)</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">update_watermark</span><span class="p">(</span><span class="n">end_time</span><span class="p">)</span>
+</span></code></pre></div>
+<p>This approach ensures that even if no records exist within an interval, the watermark still advances, preventing the pipeline from reprocessing empty intervals. Interval-based extraction is particularly effective when combined with partition-based target reconciliation strategies, where each interval corresponds to a target partition.</p>
+<h4 id="state-management-metadata-table-approach">State Management: Metadata Table Approach<a class="headerlink" href="#state-management-metadata-table-approach" title="Permanent link">&para;</a></h4>
+<p>The high-water mark is typically stored in a dedicated metadata table that tracks pipeline execution state. This table serves as the single source of truth for pipeline progress, enabling robust failure recovery and auditability. By decoupling the extraction logic from the target system's state, the metadata table allows the same pipeline to write to multiple targets (e.g., staging and production) without watermark conflicts, or to rebuild targets without losing extraction state.</p>
+<p>Storing watermarks in a transactional database (separate from the target) ensures transactional integrity: the watermark update can be part of the same transaction as the extraction logic, guaranteeing atomicity. If the extraction fails, the watermark is not advanced, preventing data loss.</p>
+<p>Metadata tables track multiple categories of information beyond just the watermark value: run identifiers for each execution, status information (success, failure, in-progress), pipeline state (watermark values, execution timestamps), and general metadata (row counts, error messages). This comprehensive tracking enables historical analysis, debugging, and compliance—answering questions like "What was the watermark on January 15<sup>th</sup>?" or "How many rows were processed in the last 30 days?"</p>
+<p>Additionally, multiple pipeline instances can check the metadata table to determine if another instance is already running, preventing duplicate extractions and ensuring concurrent execution safety.</p>
+<h4 id="alternative-target-derived-watermark">Alternative: Target-Derived Watermark<a class="headerlink" href="#alternative-target-derived-watermark" title="Permanent link">&para;</a></h4>
+<p>Alternatively, the watermark can be derived from the target system by querying the maximum timestamp value present in the destination table:</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="k">MAX</span><span class="p">(</span><span class="n">updated_at</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">last_watermark</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">FROM</span><span class="w"> </span><span class="n">target_table</span><span class="p">;</span>
+</span></code></pre></div>
+<p>This approach introduces several significant risks:</p>
+<ul>
+<li><strong>Tight Coupling</strong>: Extraction logic becomes dependent on target storage, making it difficult to support multiple targets or change target systems.</li>
+<li><strong>Multiple Target Incompatibility</strong>: Cannot support independent pipeline runs when writing to multiple targets (staging, production, analytics).</li>
+<li><strong>Data Loss Risk</strong>: If the target table is truncated, corrupted, or manually modified, the watermark becomes incorrect, potentially causing permanent data loss.</li>
+<li><strong>No Audit Trail</strong>: Lacks historical tracking of pipeline execution, making debugging and compliance difficult.</li>
+<li><strong>Concurrent Execution Issues</strong>: Multiple pipeline instances cannot safely coordinate without additional locking mechanisms.</li>
+</ul>
+<p>Despite these pitfalls, target-derived watermarks can be safely used in specific scenarios:</p>
+<ol>
+<li>
+<p><strong>Single Target, Append-Only Workloads</strong>: When there is exactly one target system and the workload is strictly append-only (no updates or deletes), the target table's maximum timestamp accurately reflects the last processed record. This is common in event streaming pipelines where records are immutable.</p>
+</li>
+<li>
+<p><strong>Read-Only Target Systems</strong>: If the target system is read-only or has strict access controls preventing truncation or manual modifications, the risk of corruption is minimized. Data warehouses with role-based access control (RBAC) that prevents <code>DELETE</code> or <code>TRUNCATE</code> operations fall into this category.</p>
+</li>
+<li>
+<p><strong>Idempotent Merge Operations</strong>: When using idempotent merge/upsert operations (e.g., Delta Lake <code>MERGE</code>), reprocessing records is safe. Even if the watermark is temporarily incorrect due to target modifications, re-running the pipeline will correct the state without data corruption.</p>
+</li>
+<li>
+<p><strong>Development and Testing</strong>: For non-production environments where data loss is acceptable, target-derived watermarks simplify setup and reduce infrastructure dependencies.</p>
+</li>
+</ol>
+<h4 id="alternative-technology-specific-state-management">Alternative: Technology-Specific State Management<a class="headerlink" href="#alternative-technology-specific-state-management" title="Permanent link">&para;</a></h4>
+<p>Some modern data engineering tools provide built-in mechanisms for managing incremental loading state, abstracting away the manual metadata table implementation. These tools handle watermark persistence, execution tracking, and state recovery automatically.</p>
+<p><strong>dbt (Data Build Tool)</strong></p>
+<p>dbt's incremental materialization strategy automatically manages state through its internal metadata system. When using the <code>incremental</code> strategy with a <code>unique_key</code> and <code>incremental_strategy</code>, dbt tracks which records have been processed:</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="err">{{</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="n">config</span><span class="p">(</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="n">materialized</span><span class="o">=</span><span class="s1">&#39;incremental&#39;</span><span class="p">,</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="n">unique_key</span><span class="o">=</span><span class="s1">&#39;id&#39;</span><span class="p">,</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="n">incremental_strategy</span><span class="o">=</span><span class="s1">&#39;merge&#39;</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="p">)</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="err">}}</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="k">select</span><span class="w"> </span><span class="o">*</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="k">from</span><span class="w"> </span><span class="err">{{</span><span class="w"> </span><span class="k">source</span><span class="p">(</span><span class="s1">&#39;raw&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;orders&#39;</span><span class="p">)</span><span class="w"> </span><span class="err">}}</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="err">{</span><span class="o">%</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">is_incremental</span><span class="p">()</span><span class="w"> </span><span class="o">%</span><span class="err">}</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">  </span><span class="k">where</span><span class="w"> </span><span class="n">updated_at</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="p">(</span><span class="k">select</span><span class="w"> </span><span class="k">max</span><span class="p">(</span><span class="n">updated_at</span><span class="p">)</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="err">{{</span><span class="w"> </span><span class="n">this</span><span class="w"> </span><span class="err">}}</span><span class="p">)</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="err">{</span><span class="o">%</span><span class="w"> </span><span class="n">endif</span><span class="w"> </span><span class="o">%</span><span class="err">}</span>
+</span></code></pre></div>
+<p>dbt stores execution metadata in its internal <code>dbt_meta</code> schema, tracking run history, model execution times, and incremental state. The <code>is_incremental()</code> macro automatically detects whether this is a full refresh or incremental run, and dbt manages the watermark comparison internally.</p>
+<p><strong>Apache Spark (Databricks)</strong></p>
+<p>Databricks Auto Loader provides automatic state management for incremental data loading by tracking processed files through checkpoint locations. While Auto Loader uses Structured Streaming (<code>readStream</code>) under the hood, it can be configured to run as batch jobs using <code>Trigger.AvailableNow</code>, which processes all available files and then stops, eliminating the need for manual metadata table management:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.sql.streaming</span><span class="w"> </span><span class="kn">import</span> <span class="n">Trigger</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># Auto Loader with Trigger.AvailableNow for batch-like behavior</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">df</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">readStream</span> \
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;cloudFiles&quot;</span><span class="p">)</span> \
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;cloudFiles.format&quot;</span><span class="p">,</span> <span class="s2">&quot;parquet&quot;</span><span class="p">)</span> \
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;cloudFiles.schemaLocation&quot;</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span> \
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="c1"># Trigger.AvailableNow processes all files available at start time, then stops</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="n">query</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">writeStream</span> \
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;delta&quot;</span><span class="p">)</span> \
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;checkpointLocation&quot;</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span> \
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>    <span class="o">.</span><span class="n">trigger</span><span class="p">(</span><span class="n">Trigger</span><span class="o">.</span><span class="n">AvailableNow</span><span class="p">())</span> \
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>    <span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">target_table</span><span class="p">)</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="n">query</span><span class="o">.</span><span class="n">awaitTermination</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Auto Loader automatically tracks processed files in the checkpoint location using RocksDB, storing file paths, modification times, and processing status. Subsequent runs only process new files that arrived since the last execution, enabling automatic deduplication and incremental processing without manual watermark tracking.</p>
+<p>For time-based incremental loading with Delta Lake tables, you can leverage Delta's time travel features to derive watermarks from the target table:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Time-based incremental load using Delta time travel for watermark</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">delta.tables</span><span class="w"> </span><span class="kn">import</span> <span class="n">DeltaTable</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Get last processed timestamp from target Delta table</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">delta_table</span> <span class="o">=</span> <span class="n">DeltaTable</span><span class="o">.</span><span class="n">forPath</span><span class="p">(</span><span class="n">spark</span><span class="p">,</span> <span class="n">target_table</span><span class="p">)</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">last_watermark</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="s2">    SELECT MAX(updated_at) as max_timestamp </span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="s2">    FROM </span><span class="si">{</span><span class="n">target_table</span><span class="si">}</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">collect</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;max_timestamp&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="s2">&quot;1970-01-01&quot;</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="c1"># Extract new records from source</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="n">df</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;parquet&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="n">df_filtered</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">&gt;</span> <span class="n">last_watermark</span><span class="p">)</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="c1"># Merge into target Delta table (idempotent operation)</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="n">delta_table</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;target&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>    <span class="n">df_filtered</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;source&quot;</span><span class="p">),</span>
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>    <span class="s2">&quot;target.id = source.id&quot;</span>
+</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="p">)</span><span class="o">.</span><span class="n">whenMatchedUpdateAll</span><span class="p">()</span> \
+</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a> <span class="o">.</span><span class="n">whenNotMatchedInsertAll</span><span class="p">()</span> \
+</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a> <span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+</span></code></pre></div>
+<p>The checkpoint location stores file-level metadata, enabling automatic file deduplication across batch runs, while Delta Lake's ACID transactions and time travel capabilities provide additional state management and recovery mechanisms.</p>
+<p><strong>Apache Airflow</strong></p>
+<p>Airflow provides strong support for bounded interval-based incremental loading through its data interval concept. Each DAG run is associated with a logical date and data interval (<code>data_interval_start</code> and <code>data_interval_end</code>), which naturally maps to time-bounded extraction windows. This makes Airflow particularly well-suited for interval-based incremental loading patterns:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">airflow</span><span class="w"> </span><span class="kn">import</span> <span class="n">DAG</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">airflow.operators.python</span><span class="w"> </span><span class="kn">import</span> <span class="n">PythonOperator</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">airflow.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Variable</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">bounded_interval_load</span><span class="p">(</span><span class="o">**</span><span class="n">context</span><span class="p">):</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="c1"># Airflow provides data_interval_start and data_interval_end in context</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    <span class="n">interval_start</span> <span class="o">=</span> <span class="n">context</span><span class="p">[</span><span class="s1">&#39;data_interval_start&#39;</span><span class="p">]</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="n">interval_end</span> <span class="o">=</span> <span class="n">context</span><span class="p">[</span><span class="s1">&#39;data_interval_end&#39;</span><span class="p">]</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>    <span class="c1"># Extract records for the specific interval (bounded query)</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>    <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="s2">        SELECT *</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="s2">        FROM source_table</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="s2">        WHERE updated_at &gt;= &#39;</span><span class="si">{</span><span class="n">interval_start</span><span class="si">}</span><span class="s2">&#39;</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="s2">          AND updated_at &lt; &#39;</span><span class="si">{</span><span class="n">interval_end</span><span class="si">}</span><span class="s2">&#39;</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="s2">        ORDER BY updated_at</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="s2">    &quot;&quot;&quot;</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a>    <span class="n">new_records</span> <span class="o">=</span> <span class="n">execute_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>    <span class="n">process_and_load</span><span class="p">(</span><span class="n">new_records</span><span class="p">)</span>
+</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a>
+</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a><span class="c1"># Daily DAG with bounded intervals</span>
+</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a><span class="n">dag</span> <span class="o">=</span> <span class="n">DAG</span><span class="p">(</span>
+</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a>    <span class="s1">&#39;incremental_orders&#39;</span><span class="p">,</span>
+</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a>    <span class="n">schedule</span><span class="o">=</span><span class="s1">&#39;@daily&#39;</span><span class="p">,</span>  <span class="c1"># Each run processes one day&#39;s data</span>
+</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a>    <span class="n">start_date</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2024</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a>    <span class="n">catchup</span><span class="o">=</span><span class="kc">False</span>
+</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a><span class="p">)</span>
+</span><span id="__span-8-30"><a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a>
+</span><span id="__span-8-31"><a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a><span class="n">task</span> <span class="o">=</span> <span class="n">PythonOperator</span><span class="p">(</span>
+</span><span id="__span-8-32"><a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a>    <span class="n">task_id</span><span class="o">=</span><span class="s1">&#39;load_incremental&#39;</span><span class="p">,</span>
+</span><span id="__span-8-33"><a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a>    <span class="n">python_callable</span><span class="o">=</span><span class="n">bounded_interval_load</span><span class="p">,</span>
+</span><span id="__span-8-34"><a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a>    <span class="n">dag</span><span class="o">=</span><span class="n">dag</span>
+</span><span id="__span-8-35"><a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>Airflow's data intervals automatically handle bounded extraction windows: each DAG run processes data for its assigned interval (e.g., <code>2024-01-15 00:00:00</code> to <code>2024-01-16 00:00:00</code> for a daily schedule). This eliminates the need for manual watermark tracking when using interval-based patterns, as Airflow ensures each interval is processed exactly once.</p>
+<p>For standard high-water mark patterns, Airflow's XCom (cross-communication) and Task Instance context provide mechanisms for state persistence:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">incremental_load</span><span class="p">(</span><span class="o">**</span><span class="n">context</span><span class="p">):</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="c1"># Retrieve last watermark from Airflow Variables or XCom</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">last_watermark</span> <span class="o">=</span> <span class="n">Variable</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;orders_last_watermark&quot;</span><span class="p">,</span> <span class="n">default_var</span><span class="o">=</span><span class="s2">&quot;2024-01-01&quot;</span><span class="p">)</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="c1"># Extract new records (open-ended query)</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">new_records</span> <span class="o">=</span> <span class="n">extract_since_watermark</span><span class="p">(</span><span class="n">last_watermark</span><span class="p">)</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="c1"># Process and load</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="n">process_and_load</span><span class="p">(</span><span class="n">new_records</span><span class="p">)</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="c1"># Update watermark in Airflow Variables</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="n">new_watermark</span> <span class="o">=</span> <span class="n">get_max_timestamp</span><span class="p">(</span><span class="n">new_records</span><span class="p">)</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="n">Variable</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;orders_last_watermark&quot;</span><span class="p">,</span> <span class="n">new_watermark</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Airflow's bounded interval capabilities make it ideal for partitioned extraction strategies where each run processes a fixed time window, while Variables, XCom, and the metadata database enable custom watermark-based incremental loading with built-in execution tracking and retry mechanisms.</p>
+<p><strong>Trade-offs of Technology-Specific Approaches:</strong></p>
+<ul>
+<li><strong>Simplified Implementation</strong>: Reduces boilerplate code and manual state management overhead.</li>
+<li><strong>Tool Lock-in</strong>: State management becomes dependent on the specific tool's implementation and migration paths.</li>
+<li><strong>Limited Customization</strong>: May not support complex state tracking requirements or multi-target scenarios.</li>
+<li><strong>Vendor-Specific Behavior</strong>: Understanding tool-specific state management nuances is required for production reliability.</li>
+</ul>
+<h4 id="advantages">Advantages<a class="headerlink" href="#advantages" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Simple to implement and understand</li>
+<li>Works well with append-only workloads</li>
+<li>Low overhead on source systems (indexed timestamp columns)</li>
+<li>Natural ordering ensures consistent processing</li>
+</ul>
+<h4 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Requires reliable timestamp columns in source data</li>
+<li>May miss records if timestamps are not updated on every change</li>
+<li>Vulnerable to clock skew issues in distributed systems</li>
+<li>Cannot detect hard deletes (records removed from source)</li>
+</ul>
+<h4 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Use transaction (processing) timestamps or system-generated timestamps rather than business-related timestamps.</li>
+<li>Indexed timestamp columns significantly improve query performance.</li>
+<li>Store watermarks in a durable, transactional system (database, metadata store).</li>
+<li>Consider using multiple timestamp columns (created_at, updated_at) for comprehensive change detection.</li>
+<li>Implement tolerance windows to handle late-arriving data.</li>
+</ul>
+<h4 id="project">Project<a class="headerlink" href="#project" title="Permanent link">&para;</a></h4>
+<p>I have developed a project implementing the high-water mark pattern. [Link placeholder]</p>
+<h3 id="pattern-2-sequence-based-monotonic-ids">Pattern 2: Sequence-Based (Monotonic IDs)<a class="headerlink" href="#pattern-2-sequence-based-monotonic-ids" title="Permanent link">&para;</a></h3>
+<p>Sequence-based incremental loading uses monotonically increasing sequence numbers or auto-increment IDs to identify new records.</p>
+<h4 id="how-it-works_1">How It Works<a class="headerlink" href="#how-it-works_1" title="Permanent link">&para;</a></h4>
+<p>The pipeline tracks the maximum sequence number processed in the previous run. On each execution, it extracts records with sequence numbers greater than the last processed value.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">FROM</span><span class="w"> </span><span class="n">source_table</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1234567</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">id</span>
+</span></code></pre></div>
+<h4 id="advantages_1">Advantages<a class="headerlink" href="#advantages_1" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Simple and efficient</li>
+<li>Guaranteed ordering</li>
+<li>Works well for append-only workloads</li>
+<li>No timestamp dependency</li>
+</ul>
+<h4 id="limitations_1">Limitations<a class="headerlink" href="#limitations_1" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Only detects new records, not updates or deletes</li>
+<li>Requires sequential, non-reusable IDs</li>
+<li>Gaps in sequences can cause issues</li>
+<li>Not suitable for update-heavy workloads</li>
+</ul>
+<h4 id="state-management">State Management<a class="headerlink" href="#state-management" title="Permanent link">&para;</a></h4>
+<p>The state management approach for sequence-based watermarking follows the same principles as Pattern 1 (High-Water Mark). The maximum <code>id</code> processed is stored in a metadata table that tracks the same categories of information: run identifiers, status information, pipeline state (sequence numbers instead of timestamps), and general metadata. This provides identical benefits: decoupling from target storage, transactional integrity, comprehensive pipeline run tracking, audit trail, and concurrent execution safety. The same considerations and pitfalls regarding target-derived watermarks apply—refer to Pattern 1's "State Management: Metadata Table Approach" and "Alternative: Target-Derived Watermark" sections for detailed explanation.</p>
+<h4 id="project_1">Project<a class="headerlink" href="#project_1" title="Permanent link">&para;</a></h4>
+<p>I have developed a project implementing the sequence-based pattern. [Link placeholder]</p>
+<h3 id="pattern-3-change-data-capture-cdc">Pattern 3: Change Data Capture (CDC)<a class="headerlink" href="#pattern-3-change-data-capture-cdc" title="Permanent link">&para;</a></h3>
+<p>Change Data Capture is a pattern that captures changes at the source system level, typically by reading database transaction logs or using database-specific CDC mechanisms.</p>
+<h4 id="how-it-works_2">How It Works<a class="headerlink" href="#how-it-works_2" title="Permanent link">&para;</a></h4>
+<p>CDC systems monitor database transaction logs (redo logs, write-ahead logs) to identify INSERT, UPDATE, and DELETE operations as they occur. These changes are captured and streamed to downstream systems in near real-time.</p>
+<p>The CDC process typically follows these steps:</p>
+<ol>
+<li>
+<p><strong>Log Reading</strong>: The CDC connector reads the database's transaction log (e.g., PostgreSQL WAL, MySQL binlog, Oracle redo logs) at a specific position or LSN (Log Sequence Number).</p>
+</li>
+<li>
+<p><strong>Change Parsing</strong>: Each log entry is parsed to extract the operation type (INSERT, UPDATE, DELETE), affected table, row data (before/after values for updates), and transaction metadata.</p>
+</li>
+<li>
+<p><strong>Change Event Generation</strong>: The parsed changes are transformed into standardized change events, typically in formats like Debezium's change event format or AWS DMS's JSON format.</p>
+</li>
+<li>
+<p><strong>Streaming</strong>: Change events are published to a message queue (Kafka, Kinesis) or directly to downstream consumers.</p>
+</li>
+<li>
+<p><strong>Offset Tracking</strong>: The CDC connector maintains its position in the transaction log, allowing it to resume from the exact point of failure.</p>
+</li>
+</ol>
+<p><strong>Example: PostgreSQL Logical Replication with Debezium</strong></p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">&quot;before&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12345</span><span class="p">,</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="nt">&quot;customer_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Acme Corp&quot;</span><span class="p">,</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="nt">&quot;order_total&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1500.00</span><span class="p">,</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="nt">&quot;updated_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2024-01-15T10:00:00Z&quot;</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">  </span><span class="nt">&quot;after&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12345</span><span class="p">,</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">    </span><span class="nt">&quot;customer_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Acme Corporation&quot;</span><span class="p">,</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">    </span><span class="nt">&quot;order_total&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1500.00</span><span class="p">,</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">    </span><span class="nt">&quot;updated_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2024-01-15T12:30:00Z&quot;</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="w">  </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="w">    </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2.5.0&quot;</span><span class="p">,</span>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="w">    </span><span class="nt">&quot;connector&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;postgresql&quot;</span><span class="p">,</span>
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;orders-connector&quot;</span><span class="p">,</span>
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="w">    </span><span class="nt">&quot;ts_ms&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1705321800000</span><span class="p">,</span>
+</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="w">    </span><span class="nt">&quot;snapshot&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+</span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="w">    </span><span class="nt">&quot;db&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;production&quot;</span><span class="p">,</span>
+</span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="w">    </span><span class="nt">&quot;schema&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;public&quot;</span><span class="p">,</span>
+</span><span id="__span-11-22"><a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="w">    </span><span class="nt">&quot;table&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;orders&quot;</span><span class="p">,</span>
+</span><span id="__span-11-23"><a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="w">    </span><span class="nt">&quot;txId&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">54321</span><span class="p">,</span>
+</span><span id="__span-11-24"><a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a><span class="w">    </span><span class="nt">&quot;lsn&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">123456789</span><span class="p">,</span>
+</span><span id="__span-11-25"><a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a><span class="w">    </span><span class="nt">&quot;xmin&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span>
+</span><span id="__span-11-26"><a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-11-27"><a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a><span class="w">  </span><span class="nt">&quot;op&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;u&quot;</span><span class="p">,</span>
+</span><span id="__span-11-28"><a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a><span class="w">  </span><span class="nt">&quot;ts_ms&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1705321800123</span>
+</span><span id="__span-11-29"><a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>In this example:
+- <code>op: "u"</code> indicates an UPDATE operation
+- <code>before</code> contains the row state before the change
+- <code>after</code> contains the row state after the change
+- <code>source.lsn</code> (Log Sequence Number) tracks the position in PostgreSQL's WAL
+- <code>source.ts_ms</code> is the timestamp when the change was committed</p>
+<p><strong>Pipeline Processing:</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Simplified CDC event processing</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">for</span> <span class="n">change_event</span> <span class="ow">in</span> <span class="n">cdc_stream</span><span class="p">:</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="k">if</span> <span class="n">change_event</span><span class="p">[</span><span class="s1">&#39;op&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;c&#39;</span><span class="p">:</span>  <span class="c1"># Create/Insert</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>        <span class="n">target_table</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">change_event</span><span class="p">[</span><span class="s1">&#39;after&#39;</span><span class="p">])</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="k">elif</span> <span class="n">change_event</span><span class="p">[</span><span class="s1">&#39;op&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;u&#39;</span><span class="p">:</span>  <span class="c1"># Update</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>        <span class="n">target_table</span><span class="o">.</span><span class="n">upsert</span><span class="p">(</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>            <span class="n">key</span><span class="o">=</span><span class="n">change_event</span><span class="p">[</span><span class="s1">&#39;after&#39;</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">],</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>            <span class="n">data</span><span class="o">=</span><span class="n">change_event</span><span class="p">[</span><span class="s1">&#39;after&#39;</span><span class="p">]</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>        <span class="p">)</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>    <span class="k">elif</span> <span class="n">change_event</span><span class="p">[</span><span class="s1">&#39;op&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;d&#39;</span><span class="p">:</span>  <span class="c1"># Delete</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>        <span class="n">target_table</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">change_event</span><span class="p">[</span><span class="s1">&#39;before&#39;</span><span class="p">][</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    <span class="c1"># Update offset to commit progress</span>
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>    <span class="n">offset_tracker</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">change_event</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">][</span><span class="s1">&#39;lsn&#39;</span><span class="p">])</span>
+</span></code></pre></div>
+<p>Common CDC implementations include:</p>
+<ul>
+<li><strong>Database-native CDC</strong>: PostgreSQL logical replication, MySQL binlog, Oracle GoldenGate</li>
+<li><strong>Log-based CDC</strong>: Debezium, AWS DMS, Fivetran</li>
+<li><strong>Trigger-based CDC</strong>: Database triggers that write changes to change tables</li>
+</ul>
+<h4 id="advantages_2">Advantages<a class="headerlink" href="#advantages_2" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Captures all changes, including hard deletes</li>
+<li>Near real-time change detection</li>
+<li>Low impact on source systems (reads logs, not tables)</li>
+<li>Preserves transaction boundaries and ordering</li>
+</ul>
+<h4 id="limitations_2">Limitations<a class="headerlink" href="#limitations_2" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Requires access to database logs (may have security/compliance restrictions)</li>
+<li>More complex to implement and operate</li>
+<li>May require additional infrastructure (CDC servers, message queues)</li>
+<li>Database-specific implementations reduce portability</li>
+</ul>
+<h4 id="project_2">Project<a class="headerlink" href="#project_2" title="Permanent link">&para;</a></h4>
+<p>I have developed a project implementing the CDC pattern. [Link placeholder]</p>
+<h3 id="pattern-4-snapshot-differencing">Pattern 4: Snapshot Differencing<a class="headerlink" href="#pattern-4-snapshot-differencing" title="Permanent link">&para;</a></h3>
+<p>Snapshot differencing compares full snapshots of data between consecutive pipeline runs to identify differences. This approach computes the set difference between snapshots to identify inserted, updated, and deleted records. It is typically used when source systems lack reliable timestamps, sequence columns, or transaction logs.</p>
+<h4 id="how-it-works_3">How It Works<a class="headerlink" href="#how-it-works_3" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>Snapshot Extraction</strong>: Extract a complete snapshot of source data at time T1 and store it (snapshot S1).</li>
+<li><strong>Subsequent Snapshot</strong>: Extract another complete snapshot at time T2 (snapshot S2).</li>
+<li><strong>Difference Computation</strong>: Compare S1 and S2 to identify:</li>
+<li><strong>Inserts</strong>: Records present in S2 but not in S1</li>
+<li><strong>Updates</strong>: Records present in both but with different attribute values</li>
+<li><strong>Deletes</strong>: Records present in S1 but not in S2</li>
+<li><strong>Delta Processing</strong>: Process only the identified changes (delta).</li>
+<li><strong>Snapshot Rotation</strong>: Replace S1 with S2 for the next comparison cycle.</li>
+</ol>
+<h4 id="advantages_3">Advantages<a class="headerlink" href="#advantages_3" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Simple conceptual model</li>
+<li>Can detect all types of changes</li>
+<li>No dependency on source system features</li>
+</ul>
+<h4 id="limitations_3">Limitations<a class="headerlink" href="#limitations_3" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Requires storing full snapshots (storage overhead)</li>
+<li>Comparison step can be expensive</li>
+<li>Not suitable for very large datasets</li>
+<li>May require significant memory for comparison</li>
+</ul>
+<h4 id="implementation-variants">Implementation Variants<a class="headerlink" href="#implementation-variants" title="Permanent link">&para;</a></h4>
+<p>Since comparing full snapshots is computationally expensive, several optimization strategies exist. The most common approaches include hash-based comparison, key-based differencing, and incremental snapshot storage.</p>
+<h4 id="hash-based-change-detection">Hash-Based Change Detection<a class="headerlink" href="#hash-based-change-detection" title="Permanent link">&para;</a></h4>
+<p>Hash-based change detection computes a cryptographic hash value (MD5, SHA-256) for each record based on its attributes. By comparing hash values between source and target, the system can identify changed records without storing full snapshots.</p>
+<p><strong>How It Works:</strong></p>
+<ol>
+<li>
+<p><strong>Hash Computation</strong>: For each record, compute a hash value using all relevant columns (excluding metadata columns like <code>updated_at</code> if they exist).</p>
+</li>
+<li>
+<p><strong>Hash Storage</strong>: Store the hash value alongside the record in the target system, typically in a dedicated <code>record_hash</code> column.</p>
+</li>
+<li>
+<p><strong>Comparison</strong>: On each pipeline run:</p>
+</li>
+<li>Compute hashes for all source records</li>
+<li>Compare source hashes with stored target hashes</li>
+<li>Identify records where:<ul>
+<li>Hash exists in source but not in target → <strong>INSERT</strong></li>
+<li>Hash exists in both but values differ → <strong>UPDATE</strong></li>
+<li>Hash exists in target but not in source → <strong>DELETE</strong></li>
+</ul>
+</li>
+</ol>
+<p><strong>Example Implementation:</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">compute_record_hash</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">columns_to_hash</span><span class="p">):</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute SHA-256 hash for a record based on specified columns.&quot;&quot;&quot;</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    <span class="c1"># Sort columns for consistent hashing</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    <span class="n">record_data</span> <span class="o">=</span> <span class="p">{</span><span class="n">col</span><span class="p">:</span> <span class="n">record</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">columns_to_hash</span><span class="p">)}</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>    <span class="n">record_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">record_data</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>    <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">record_json</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="c1"># Pipeline execution</span>
+</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="n">source_records</span> <span class="o">=</span> <span class="n">extract_source_data</span><span class="p">()</span>
+</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="n">target_records</span> <span class="o">=</span> <span class="n">load_target_data</span><span class="p">()</span>
+</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>
+</span><span id="__span-13-15"><a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="c1"># Compute hashes for source</span>
+</span><span id="__span-13-16"><a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="n">source_hashes</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-13-17"><a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a>    <span class="n">compute_record_hash</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;email&#39;</span><span class="p">,</span> <span class="s1">&#39;status&#39;</span><span class="p">]):</span> <span class="n">record</span>
+</span><span id="__span-13-18"><a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a>    <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">source_records</span>
+</span><span id="__span-13-19"><a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a><span class="p">}</span>
+</span><span id="__span-13-20"><a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a>
+</span><span id="__span-13-21"><a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a><span class="c1"># Load existing hashes from target</span>
+</span><span id="__span-13-22"><a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a><span class="n">target_hashes</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-13-23"><a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a>    <span class="n">record</span><span class="p">[</span><span class="s1">&#39;record_hash&#39;</span><span class="p">]:</span> <span class="n">record</span>
+</span><span id="__span-13-24"><a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a>    <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">target_records</span>
+</span><span id="__span-13-25"><a id="__codelineno-13-25" name="__codelineno-13-25" href="#__codelineno-13-25"></a><span class="p">}</span>
+</span><span id="__span-13-26"><a id="__codelineno-13-26" name="__codelineno-13-26" href="#__codelineno-13-26"></a>
+</span><span id="__span-13-27"><a id="__codelineno-13-27" name="__codelineno-13-27" href="#__codelineno-13-27"></a><span class="c1"># Identify changes</span>
+</span><span id="__span-13-28"><a id="__codelineno-13-28" name="__codelineno-13-28" href="#__codelineno-13-28"></a><span class="n">inserts</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-13-29"><a id="__codelineno-13-29" name="__codelineno-13-29" href="#__codelineno-13-29"></a>    <span class="n">source_hashes</span><span class="p">[</span><span class="n">hash_val</span><span class="p">]</span>
+</span><span id="__span-13-30"><a id="__codelineno-13-30" name="__codelineno-13-30" href="#__codelineno-13-30"></a>    <span class="k">for</span> <span class="n">hash_val</span> <span class="ow">in</span> <span class="n">source_hashes</span>
+</span><span id="__span-13-31"><a id="__codelineno-13-31" name="__codelineno-13-31" href="#__codelineno-13-31"></a>    <span class="k">if</span> <span class="n">hash_val</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">target_hashes</span>
+</span><span id="__span-13-32"><a id="__codelineno-13-32" name="__codelineno-13-32" href="#__codelineno-13-32"></a><span class="p">]</span>
+</span><span id="__span-13-33"><a id="__codelineno-13-33" name="__codelineno-13-33" href="#__codelineno-13-33"></a>
+</span><span id="__span-13-34"><a id="__codelineno-13-34" name="__codelineno-13-34" href="#__codelineno-13-34"></a><span class="n">updates</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-13-35"><a id="__codelineno-13-35" name="__codelineno-13-35" href="#__codelineno-13-35"></a>    <span class="n">source_hashes</span><span class="p">[</span><span class="n">hash_val</span><span class="p">]</span>
+</span><span id="__span-13-36"><a id="__codelineno-13-36" name="__codelineno-13-36" href="#__codelineno-13-36"></a>    <span class="k">for</span> <span class="n">hash_val</span> <span class="ow">in</span> <span class="n">source_hashes</span>
+</span><span id="__span-13-37"><a id="__codelineno-13-37" name="__codelineno-13-37" href="#__codelineno-13-37"></a>    <span class="k">if</span> <span class="n">hash_val</span> <span class="ow">in</span> <span class="n">target_hashes</span>
+</span><span id="__span-13-38"><a id="__codelineno-13-38" name="__codelineno-13-38" href="#__codelineno-13-38"></a>    <span class="ow">and</span> <span class="n">source_hashes</span><span class="p">[</span><span class="n">hash_val</span><span class="p">]</span> <span class="o">!=</span> <span class="n">target_hashes</span><span class="p">[</span><span class="n">hash_val</span><span class="p">]</span>
+</span><span id="__span-13-39"><a id="__codelineno-13-39" name="__codelineno-13-39" href="#__codelineno-13-39"></a><span class="p">]</span>
+</span><span id="__span-13-40"><a id="__codelineno-13-40" name="__codelineno-13-40" href="#__codelineno-13-40"></a>
+</span><span id="__span-13-41"><a id="__codelineno-13-41" name="__codelineno-13-41" href="#__codelineno-13-41"></a><span class="n">deletes</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-13-42"><a id="__codelineno-13-42" name="__codelineno-13-42" href="#__codelineno-13-42"></a>    <span class="n">target_hashes</span><span class="p">[</span><span class="n">hash_val</span><span class="p">]</span>
+</span><span id="__span-13-43"><a id="__codelineno-13-43" name="__codelineno-13-43" href="#__codelineno-13-43"></a>    <span class="k">for</span> <span class="n">hash_val</span> <span class="ow">in</span> <span class="n">target_hashes</span>
+</span><span id="__span-13-44"><a id="__codelineno-13-44" name="__codelineno-13-44" href="#__codelineno-13-44"></a>    <span class="k">if</span> <span class="n">hash_val</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">source_hashes</span>
+</span><span id="__span-13-45"><a id="__codelineno-13-45" name="__codelineno-13-45" href="#__codelineno-13-45"></a><span class="p">]</span>
+</span><span id="__span-13-46"><a id="__codelineno-13-46" name="__codelineno-13-46" href="#__codelineno-13-46"></a>
+</span><span id="__span-13-47"><a id="__codelineno-13-47" name="__codelineno-13-47" href="#__codelineno-13-47"></a><span class="c1"># Process delta</span>
+</span><span id="__span-13-48"><a id="__codelineno-13-48" name="__codelineno-13-48" href="#__codelineno-13-48"></a><span class="n">process_inserts</span><span class="p">(</span><span class="n">inserts</span><span class="p">)</span>
+</span><span id="__span-13-49"><a id="__codelineno-13-49" name="__codelineno-13-49" href="#__codelineno-13-49"></a><span class="n">process_updates</span><span class="p">(</span><span class="n">updates</span><span class="p">)</span>
+</span><span id="__span-13-50"><a id="__codelineno-13-50" name="__codelineno-13-50" href="#__codelineno-13-50"></a><span class="n">process_deletes</span><span class="p">(</span><span class="n">deletes</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>SQL-Based Hash Comparison:</strong></p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1">-- Step 1: Create staging table with computed hashes</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="k">CREATE</span><span class="w"> </span><span class="n">TEMP</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">source_with_hash</span><span class="w"> </span><span class="k">AS</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="k">SELECT</span><span class="w"> </span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span><span class="o">*</span><span class="p">,</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">    </span><span class="n">SHA256</span><span class="p">(</span><span class="n">CONCAT</span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">email</span><span class="p">,</span><span class="w"> </span><span class="n">status</span><span class="p">))</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">record_hash</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="k">FROM</span><span class="w"> </span><span class="n">source_table</span><span class="p">;</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="c1">-- Step 2: Identify inserts (new hashes)</span>
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="o">*</span>
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="k">FROM</span><span class="w"> </span><span class="n">source_with_hash</span><span class="w"> </span><span class="n">s</span>
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">target_table</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">record_hash</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">record_hash</span>
+</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">record_hash</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NULL</span><span class="p">;</span>
+</span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>
+</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="c1">-- Step 3: Identify updates (hash exists but data changed)</span>
+</span><span id="__span-14-15"><a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="o">*</span>
+</span><span id="__span-14-16"><a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a><span class="k">FROM</span><span class="w"> </span><span class="n">source_with_hash</span><span class="w"> </span><span class="n">s</span>
+</span><span id="__span-14-17"><a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a><span class="k">INNER</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">target_table</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">id</span>
+</span><span id="__span-14-18"><a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">record_hash</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">record_hash</span><span class="p">;</span>
+</span><span id="__span-14-19"><a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a>
+</span><span id="__span-14-20"><a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a><span class="c1">-- Step 4: Identify deletes (hash missing in source)</span>
+</span><span id="__span-14-21"><a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="o">*</span>
+</span><span id="__span-14-22"><a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a><span class="k">FROM</span><span class="w"> </span><span class="n">target_table</span><span class="w"> </span><span class="n">t</span>
+</span><span id="__span-14-23"><a id="__codelineno-14-23" name="__codelineno-14-23" href="#__codelineno-14-23"></a><span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">source_with_hash</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">record_hash</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">record_hash</span>
+</span><span id="__span-14-24"><a id="__codelineno-14-24" name="__codelineno-14-24" href="#__codelineno-14-24"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">record_hash</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NULL</span><span class="p">;</span>
+</span></code></pre></div>
+<p><strong>Optimization Strategies:</strong></p>
+<ul>
+<li><strong>Incremental Hash Comparison</strong>: Only compare hashes for records where the primary key exists in both source and target, reducing comparison scope.</li>
+<li><strong>Partitioned Hashing</strong>: Compute hashes per partition to enable parallel processing and reduce memory requirements.</li>
+<li><strong>Hash Indexing</strong>: Create indexes on <code>record_hash</code> columns to accelerate lookups during comparison.</li>
+</ul>
+<h4 id="advantages_4">Advantages<a class="headerlink" href="#advantages_4" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Detects changes regardless of change type (insert, update, delete)</li>
+<li>Works without timestamp or sequence columns</li>
+<li>Can detect changes in any column</li>
+<li>More storage-efficient than full snapshot storage (stores hashes, not full records)</li>
+</ul>
+<h4 id="limitations_4">Limitations<a class="headerlink" href="#limitations_4" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Computationally expensive (requires full table scan and hash computation)</li>
+<li>May not scale well for very large tables (millions+ records)</li>
+<li>Requires storing hash values in target system (additional column overhead)</li>
+<li>Hash collisions are theoretically possible (SHA-256 collision probability is negligible for practical purposes)</li>
+<li>Cannot identify which specific column changed (only that something changed)</li>
+</ul>
+<h4 id="project_3">Project<a class="headerlink" href="#project_3" title="Permanent link">&para;</a></h4>
+<p>I have developed a project implementing the snapshot differencing pattern. [Link placeholder]</p>
+<h2 id="target-reconciliation-strategies">Target Reconciliation Strategies<a class="headerlink" href="#target-reconciliation-strategies" title="Permanent link">&para;</a></h2>
+<h3 id="append-only">Append-Only<a class="headerlink" href="#append-only" title="Permanent link">&para;</a></h3>
+<p>New records are appended without modifying existing ones. Ideal for immutable event data (logs, transactions, sensor readings). This strategy provides the highest write throughput and simplest consistency model.</p>
+<h3 id="mergeupsert">Merge/Upsert<a class="headerlink" href="#mergeupsert" title="Permanent link">&para;</a></h3>
+<p>INSERT new records and UPDATE existing ones based on a business key. Common for slowly changing dimensions (SCD) and transactional data. This approach maintains referential integrity and supports point-in-time queries.</p>
+<h3 id="partition-overwrite">Partition Overwrite<a class="headerlink" href="#partition-overwrite" title="Permanent link">&para;</a></h3>
+<p>For specific partitions or date ranges, delete existing data and replace with fresh data. Useful when CDC is unavailable but partition-level refresh is acceptable. This approach ensures atomicity at the partition granularity while avoiding full table scans.</p>
+<h2 id="engineering-challenges-and-resilience-patterns">Engineering Challenges and Resilience Patterns<a class="headerlink" href="#engineering-challenges-and-resilience-patterns" title="Permanent link">&para;</a></h2>
+<p>Incremental pipelines are prone to specific failure modes that can compromise data integrity. Robust engineering requires addressing these proactively to guarantee idempotency, prevent dataset corruption (e.g., duplicate records), and ensure fault tolerance and resilience. Pipelines will fail, and when retried, they may reprocess data. If the pipeline is not idempotent, this leads to duplicate records or incorrect aggregations.</p>
+<h3 id="1-idempotency-and-duplicate-handling">1. Idempotency and Duplicate Handling<a class="headerlink" href="#1-idempotency-and-duplicate-handling" title="Permanent link">&para;</a></h3>
+<p><strong>The Problem:</strong> Pipeline failures and retries can cause duplicate processing of the same data, leading to duplicate records in the target system or incorrect aggregations.</p>
+<p><strong>The Solution:</strong></p>
+<ul>
+<li><strong>Merge/Upsert:</strong> Never use blind <code>INSERT</code>. Use <code>MERGE INTO</code> (SQL) or Delta/Iceberg <code>merge</code> operations to update existing keys and insert new ones.</li>
+<li><strong>Deduplication:</strong> Within a batch, deduplicate by primary key, keeping the record with the latest timestamp.</li>
+<li><strong>Transactional Writes:</strong> Use ACID-compliant table formats (Delta Lake, Apache Iceberg) to ensure that a failed batch does not leave partial data.</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># Spark/Delta Lake Example of Idempotency</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="n">deltaTable</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;t&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="n">source_df</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;s&quot;</span><span class="p">),</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    <span class="s2">&quot;t.id = s.id&quot;</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="p">)</span><span class="o">.</span><span class="n">whenMatchedUpdateAll</span><span class="p">()</span> \
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a> <span class="o">.</span><span class="n">whenNotMatchedInsertAll</span><span class="p">()</span> \
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a> <span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+</span></code></pre></div>
+<h3 id="2-the-hard-delete-problem">2. The "Hard Delete" Problem<a class="headerlink" href="#2-the-hard-delete-problem" title="Permanent link">&para;</a></h3>
+<p><strong>The Problem:</strong> Standard SQL queries (<code>WHERE updated_at &gt; X</code>) cannot return records that no longer exist. A hard delete in the source leaves a "ghost" record in the target.</p>
+<p><strong>The Solution:</strong></p>
+<ul>
+<li><strong>Soft Deletes (Preferred):</strong> Change source behavior to set a flag (<code>is_deleted=true</code>) rather than physically removing rows.</li>
+<li><strong>Tombstones (CDC):</strong> CDC connectors generate a "delete" event. The pipeline must interpret this event to either delete the target row or mark it as valid-to-current-time in temporal tables.</li>
+<li><strong>Periodic Reconciliation:</strong> Run a low-frequency (e.g., weekly) process that performs a full outer join (key-only) to identify and purge IDs present in the target but missing in the source.</li>
+</ul>
+<h3 id="3-late-arriving-data-and-out-of-order-events">3. Late Arriving Data and Out-of-Order Events<a class="headerlink" href="#3-late-arriving-data-and-out-of-order-events" title="Permanent link">&para;</a></h3>
+<p><strong>The Problem:</strong> In distributed systems, data ingestion time often lags behind event generation time. If a watermark is advanced based on "processing time," a late-arriving record with an older "event time" may be permanently skipped.</p>
+<p><strong>The Solution:</strong></p>
+<ul>
+<li><strong>Look-back Windows:</strong> When querying the source, include a buffer (e.g., <code>WHERE updated_at &gt; last_watermark - INTERVAL '1 hour'</code>).</li>
+<li><strong>Dual-Timestamp Architecture:</strong> Track both <code>event_time</code> (business logic) and <code>processing_time</code> (watermarking). Use <code>processing_time</code> for extraction but <code>event_time</code> for ordering.</li>
+<li><strong>Watermark Delay:</strong> Intentionally lag the watermark to allow for consistency windows (e.g., Spark Structured Streaming watermarks).</li>
+</ul>
+<h3 id="4-schema-evolution">4. Schema Evolution<a class="headerlink" href="#4-schema-evolution" title="Permanent link">&para;</a></h3>
+<p><strong>The Problem:</strong> Source schemas change (column additions, type changes). A rigid pipeline will fail or drop data when the schema drifts.</p>
+<p><strong>The Solution:</strong></p>
+<ul>
+<li><strong>Schema-on-Read:</strong> Use file formats like Parquet or Avro that carry schema metadata, enabling schema evolution without pipeline modifications.</li>
+<li><strong>Schema Registry:</strong> Implement a central registry (e.g., Confluent Schema Registry) to validate compatibility (backward/forward) before ingestion.</li>
+<li><strong>Schema Evolution Features:</strong> Utilize features in Delta Lake or Snowflake that allow <code>autoMerge</code> or schema inference during write operations.</li>
+</ul>
+<h3 id="5-re-ingestion-and-backfilling">5. Re-ingestion and Backfilling<a class="headerlink" href="#5-re-ingestion-and-backfilling" title="Permanent link">&para;</a></h3>
+<p><strong>The Problem:</strong> Business logic changes or data quality bugs require reprocessing historical data. Incremental pipelines are typically designed to only move forward.</p>
+<p><strong>The Solution:</strong></p>
+<ul>
+<li><strong>Parameterization:</strong> Design the pipeline to accept explicit <code>start_date</code> and <code>end_date</code> parameters, allowing manual override of the stored watermark.</li>
+<li><strong>Idempotent Replay:</strong> Ensure that re-running a historical batch overwrites the bad data without creating duplicates (see Idempotency section).</li>
+<li><strong>Time Travel:</strong> Leverage modern table formats (Delta Lake, Iceberg) to rollback the target table to a previous version before re-running the load.</li>
+</ul>
+<hr />
+<h2 id="implementation-checklist">Implementation Checklist<a class="headerlink" href="#implementation-checklist" title="Permanent link">&para;</a></h2>
+<p>To certify an incremental load pipeline for production, verify the following:</p>
+<ul>
+<li><strong>State Persistence:</strong> Is the watermark/state stored in a durable, ACID-compliant backend (not a temporary file)?</li>
+<li><strong>Idempotency:</strong> Can I run the same batch 5 times and get the same result as running it once?</li>
+<li><strong>Delete Strategy:</strong> How does the system react when a row is deleted in the source?</li>
+<li><strong>Schema Drift:</strong> What happens if a column is added to the source tomorrow? (Fail? Ignore? Evolve?)</li>
+<li><strong>Observability:</strong> Are metrics defined for "rows extracted" versus "rows loaded"? Is there an alert for "zero rows processed" (stale pipeline)?</li>
+<li><strong>Re-ingestion:</strong> Is there a runbook for re-processing the last 30 days of data?</li>
+</ul>
+<h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
+<p>Incremental loading is an exercise in managing state and failure. By standardizing on a robust <strong>Change Detection</strong> strategy, maintaining strict <strong>State Management</strong>, and implementing idempotent <strong>Target Reconciliation</strong>, engineers can build pipelines that are not only efficient but resilient to the inherent complexity and failure modes of distributed data systems.</p>
+
+
+
+
+
+
+
+  
+    
+  
+  
+    
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 23, 2025 23:45:14 UTC">November 23, 2025</span>
+  </span>
+
+    
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Created">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="November 23, 2025 23:45:14 UTC">November 23, 2025</span>
+  </span>
+
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../" class="md-footer__link md-footer__link--prev" aria-label="Previous: Data Engineering">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Data Engineering
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../apache-spark/" class="md-footer__link md-footer__link--next" aria-label="Next: Apache Spark">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Apache Spark
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; Alisson Hayasi da Costa
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://www.linkedin.com/in/ahayasic/" target="_blank" rel="noopener" title="www.linkedin.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3M135.4 416H69V202.2h66.5V416zM102.2 96a38.5 38.5 0 1 1 0 77 38.5 38.5 0 1 1 0-77m282.1 320h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/ahayasic" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.instant.progress", "navigation.instant.preview", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.indexes", "navigation.path", "navigation.top", "navigation.footer", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
